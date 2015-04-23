@@ -48,28 +48,28 @@ static int __init thedoor_init(void)
     printk("Thedoor loading");
 
     if (alloc_chrdev_region(&dev_id, 0, 1, "thedoor") < 0)
-        return -1;
+        goto error;
 
-    if ((dev_class = class_create(THIS_MODULE, "thedoor")) == NULL) {
-        unregister_chrdev_region(dev_id, 1);
-        return -1;
-    }
+    if ((dev_class = class_create(THIS_MODULE, "thedoor")) == NULL)
+        goto error_class;
 
-    if (device_create(dev_class, NULL, dev_id, NULL, "door") == NULL) {
-        class_destroy(dev_class);
-        unregister_chrdev_region(dev_id, 1);
-        return -1;
-    }
+    if (device_create(dev_class, NULL, dev_id, NULL, "door") == NULL)
+        goto error_device;
 
     cdev_init(&device, &thedoor_fops);
-    if (cdev_add(&device, dev_id, 1) == -1) {
-        device_destroy(dev_class, dev_id);
-        class_destroy(dev_class);
-        unregister_chrdev_region(dev_id, 1);
-        return -1;
-    }
+    if (cdev_add(&device, dev_id, 1) == -1)
+        goto error_cdev;
 
     return 0;
+
+error_cdev:
+    device_destroy(dev_class, dev_id);
+error_device:
+    class_destroy(dev_class);
+error_class:
+    unregister_chrdev_region(dev_id, 1);
+error:
+    return -1;
 }
 
 
